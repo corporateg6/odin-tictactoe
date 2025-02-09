@@ -54,6 +54,7 @@ const game = (function() {
         console.log("new game started");
         renderGame();
         getGameResult();
+        renderGameBoardInitial();
     }
 
     function getPlayerWithPiece(piece) {
@@ -110,34 +111,61 @@ const game = (function() {
                 }
             }
             
-            if(!nullFound) gameOver = true; //if we didn't find any nulls, then the game is over, regardless if there is a winner
+            // moving draw logic to another function
+            // if(!nullFound) gameOver = true; //if we didn't find any nulls, then the game is over, regardless if there is a winner
             
             return {
                 gameOver,
                 winner,
             };
         }
+
+        function checkDraw(board) {
+            let draw = true;
+            for(let i=0; i<board.length; i++) {
+                if(!board[i]) draw = false;
+            }
+            return draw;
+        }
         
         //create different arrays to check for win variations
         const hBoard = gameBoard.getBoard();
+        const h1Board = [hBoard[0],hBoard[1],hBoard[2]];
+        const h2Board = [hBoard[3],hBoard[4],hBoard[5]];
+        const h3Board = [hBoard[6],hBoard[7],hBoard[8]];
         const vBoard = [hBoard[0],hBoard[3],hBoard[6],hBoard[1],hBoard[4],hBoard[7],hBoard[2],hBoard[5],hBoard[8]];
+        const v1Board = [vBoard[0],vBoard[1],vBoard[2]];
+        const v2Board = [vBoard[3],vBoard[4],vBoard[5]];
+        const v3Board = [vBoard[6],vBoard[7],vBoard[8]]; 
         const d1Board = [hBoard[0],hBoard[4],hBoard[8]];
         const d2Board = [hBoard[2],hBoard[4], hBoard[6]];
         let result = null;
+
+        const boards = [h1Board, h2Board, h3Board, v1Board, v2Board, v3Board, d1Board, d2Board];
+
+        for(let i=0; i<boards.length; i++) {
+            result = checkWin(boards[i]);
+            if(result.gameOver) break;
+        }
+
+        //check if game is over due to draw
+        if(!result.gameOver) {
+            gameOver = checkDraw(hBoard);
+        }
     
-        result = checkWin(hBoard);
-        if(!result.gameOver) {
-            // console.log(vBoard);
-            result = checkWin(vBoard);
-        }
-        if(!result.gameOver) {
-            // console.log(d1Board);
-            result = checkWin(d1Board);
-        }
-        if(!result.gameOver) {
-            // console.log(d2Board);
-            result = checkWin(d2Board);
-        }
+        // result = checkWin(hBoard);
+        // if(!result.gameOver) {
+        //     // console.log(vBoard);
+        //     result = checkWin(vBoard);
+        // }
+        // if(!result.gameOver) {
+        //     // console.log(d1Board);
+        //     result = checkWin(d1Board);
+        // }
+        // if(!result.gameOver) {
+        //     // console.log(d2Board);
+        //     result = checkWin(d2Board);
+        // }
     
         gameOver = result.gameOver;
         winner = getPlayerWithPiece(result.winner);
@@ -171,6 +199,20 @@ const game = (function() {
             }
         } else {
             console.log(`game in progress, ${getCurrentPlayer().getName()} submit move to continue`);
+        }
+    }
+
+    function renderGameBoardInitial() {
+        const gameBoardDOM = document.querySelector(".game-board");
+        gameBoardDOM.innerHTML = "";
+        for (let i=0; i<9; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            const cellContent = document.createElement("div");
+            cellContent.classList.add("cell-content");
+            cellContent.id = `${i}`;
+            cell.appendChild(cellContent);
+            gameBoardDOM.appendChild(cell);
         }
     }
 
