@@ -15,10 +15,14 @@ const game = (function() {
             return board;
         }
 
+        function getBoardAt(i) {
+            return board[i];
+        }
+
         function updateBoard(index, value) {
             if(index < 9 && !board[index]) {
                 board[index] = value;
-                return true; //return true if success //TODO find a better way to handle this
+                return true; //return true if success //TODO find a better way to handle this?
             } else {
                 return false; //return false if failed //should we return the failed move?
             }
@@ -28,6 +32,7 @@ const game = (function() {
         
         return {
             getBoard,
+            getBoardAt,
             updateBoard,
             resetBoard,
         };
@@ -44,12 +49,14 @@ const game = (function() {
     const players = [player1, player2];
     let gameOver = false;
     let winner = null;
+    let winType = null;
     let currentPlayerIndex = 0;
 
     function newGame() {
         gameBoard.resetBoard();
         gameOver = false;
         winner = null;
+        winType = null;
         currentPlayerIndex = 0;
         console.log("new game started");
         renderGame();
@@ -207,13 +214,43 @@ const game = (function() {
         gameBoardDOM.innerHTML = "";
         for (let i=0; i<9; i++) {
             const cell = document.createElement("div");
-            cell.classList.add("cell");
-            const cellContent = document.createElement("div");
-            cellContent.classList.add("cell-content");
-            cellContent.id = `${i}`;
-            cell.appendChild(cellContent);
+            cell.classList.add("cell", "empty");
+            cell.id = `${i}`;
+            cell.addEventListener("click", triggerCell); //add onclick function to cells
+            // I don't need to add the cell content until I fill the cell with content
+            // const cellContent = document.createElement("div");
+            // cellContent.classList.add("cell-content");
+            // cellContent.id = `${i}`;
+            // cell.appendChild(cellContent);
             gameBoardDOM.appendChild(cell);
         }
+    }
+
+    function renderWin(winType) {
+        const h1 = [0,1,2];
+        const h2 = [3,4,5];
+        const h3 = [6,7,8];
+        const v1 = [0,3,6];
+        const v2 = [1,4,7];
+        const v3 = [2,5,9];
+        const d1 = [0,4,8];
+        const d2 = [2,4,6];
+
+    }
+
+    //this is the on click function for the cells
+    function triggerCell(evt) {
+        //update the cell and add cell content according to the board state
+        const cell = evt.target;
+        game.submitMove(cell.id);
+        cell.classList.remove("empty");
+        cell.removeEventListener("click", triggerCell);
+        const cellContent = document.createElement("div");
+        const piece = gameBoard.getBoardAt(cell.id);
+        cellContent.classList.add("cell-content", piece);
+        cellContent.textContent = piece;
+        cell.appendChild(cellContent);
+
     }
 
     function init() {

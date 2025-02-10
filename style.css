@@ -64,7 +64,7 @@ button.reset {
     justify-content: center;
 }
 
-.cell:hover {
+.cell.empty:hover {
     background-color: lightgrey;
 }
 
@@ -174,11 +174,11 @@ button.reset {
     font-weight: 900;
 }
 
-.cell-content.x {
+.cell-content.X {
     color: blue;
 }
 
-.cell-content.o {
+.cell-content.O {
     color: red;
 }
 
