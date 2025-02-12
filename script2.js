@@ -152,7 +152,10 @@ const game = (function() {
 
         for(let i=0; i<boards.length; i++) {
             result = checkWin(boards[i]);
-            if(result.gameOver) break;
+            if(result.gameOver) {
+                winType = i;
+                break;
+            }
         }
 
         //check if game is over due to draw
@@ -200,6 +203,7 @@ const game = (function() {
     function getGameResult() {
         if (gameOver) {
             if(winner) {
+                renderWin(winType);
                 console.log(`${winner.getName()} is the winner! Start a new game to play again.`);
             } else {
                 console.log(`Game is a draw, start a new game to play again!`);
@@ -235,14 +239,19 @@ const game = (function() {
         const v3 = [2,5,9];
         const d1 = [0,4,8];
         const d2 = [2,4,6];
+        const winTypes = [h1, h2, h3, v1, v2, v3, d1, d2];
 
+        const winCells = winTypes[winType];
+        for(let i = 0; i < winCells.length; i++) {
+            document.getElementById(`${winCells[i]}`).classList.toggle("win");
+        }
     }
 
     //this is the on click function for the cells
     function triggerCell(evt) {
         //update the cell and add cell content according to the board state
         const cell = evt.target;
-        game.submitMove(cell.id);
+        submitMove(cell.id);
         cell.classList.remove("empty");
         cell.removeEventListener("click", triggerCell);
         const cellContent = document.createElement("div");
@@ -259,13 +268,16 @@ const game = (function() {
 
     init();
 
-    return {
-        newGame,
-        renderGame,
-        submitMove,
-        getCurrentPlayer,
-        getGameResult,
-        checkWinner,
-    };
+    //don't need to expose any external methods currently
+    // return {
+    //     newGame,
+    //     renderGame,
+    //     submitMove,
+    //     getCurrentPlayer,
+    //     getGameResult,
+    //     checkWinner,
+    // };
 
+
+    return {renderWin,};
 })();
