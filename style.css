@@ -164,6 +164,12 @@ button.reset {
     /* border: 1px solid white; */
 }
 
+svg {
+    width: 20%;
+    height: 20%;
+    fill: #fff;
+}
+
 #player2-indicator {
     margin: auto;
     /* border: 1px solid white; */

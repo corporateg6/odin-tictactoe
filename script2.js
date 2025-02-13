@@ -1,3 +1,4 @@
+
 const game = (function() {
 
     const gameBoard = (function() {
@@ -39,16 +40,21 @@ const game = (function() {
     })();
 
     function createPlayer (name, piece) {
+        let score = 0;
         const getName = () => name;
         const getPiece = () => piece;
-        return { getName, getPiece };
+        const getScore = () => score;
+        const increaseScore = () => score++;
+        const resetScore = () => score = 0;
+        return { getName, getPiece, getScore, increaseScore, resetScore };
     }
 
-    const player1 = createPlayer("player1", "X");
-    const player2 = createPlayer("player2", "O");
-    const players = [player1, player2];
+    let player1 = createPlayer("Player 1", "X");
+    let player2 = createPlayer("Player 2", "O");
+    let players = [player1, player2];
     let gameOver = false;
     let winner = null;
+    let winnerIdx = null;
     let winType = null;
     let currentPlayerIndex = 0;
 
@@ -57,11 +63,49 @@ const game = (function() {
         gameOver = false;
         winner = null;
         winType = null;
+        winnerIdx = null;
         currentPlayerIndex = 0;
-        console.log("new game started");
-        renderGame();
+        randomizeStartingPlayer();
+        // renderGameConsole();
         getGameResult();
-        renderGameBoardInitial();
+        renderGameBoard();
+        renderScore();
+        renderPlayerIndicator();
+        renderGameStatus();
+        renderPlayerInfo();
+    }
+
+    function resetScores() {
+        for(let i=0; i<players.length; i++) {
+            players[i].resetScore();
+        }
+    }
+
+    function renderGameStatus() {
+        const gameStatus = document.querySelector(".game-status-message");
+        if(!gameOver) {
+            gameStatus.textContent = `${getCurrentPlayer().getName()} to move.`;
+        } else {
+            if (winner) {
+                gameStatus.textContent = `${winner.getName()} wins!`;
+            } else {
+                gameStatus.textContent = `Draw!`;
+            }
+        }
+    }
+
+    function renderPlayerInfo() {
+        const p1 = document.getElementById("player1");
+        const p2 = document.getElementById("player2");
+        p1name = p1.querySelector(".player-name");
+        p2name = p2.querySelector(".player-name");
+        p1piece = p1.querySelector(".player-piece");
+        p2piece = p2.querySelector(".player-piece");
+
+        p1name.textContent = players[0].getName();
+        p2name.textContent = players[1].getName();
+        p1piece.textContent = players[0].getPiece();
+        p2piece.textContent = players[1].getPiece();
     }
 
     function getPlayerWithPiece(piece) {
@@ -70,7 +114,13 @@ const game = (function() {
         }
     }
 
-    function renderGame() {
+    function getPlayerIndexWithPiece(piece) {
+        for(let i=0; i<players.length; i++) {
+            if (players[i].getPiece() === piece) return i;
+        }
+    }
+
+    function renderGameConsole() {
         const board = gameBoard.getBoard().map((item) => item === null ? '_' : item);
         console.log(`${board[0]}|${board[1]}|${board[2]}`);
         //console.log(`_____`);
@@ -178,23 +228,49 @@ const game = (function() {
         // }
     
         gameOver = result.gameOver;
-        winner = getPlayerWithPiece(result.winner);
-    
+        winnerIdx = getPlayerIndexWithPiece(result.winner);
+        winner = players[winnerIdx];
+    }
+
+    function randomizeStartingPlayer() {
+        currentPlayerIndex = Math.round(Math.random());
+    }
+
+    function renderPlayerIndicator() {
+        const p1Indicator = document.getElementById("player1-indicator");
+        const p2Indicator = document.getElementById("player2-indicator");
+        p1Svg = p1Indicator.querySelector("svg");
+        p2Svg = p2Indicator.querySelector("svg");
+        if(gameOver) {
+            p1Svg.style.display = "none";
+            p2Svg.style.display = "none";
+            return;
+        }
+        switch(currentPlayerIndex % 2) {
+            case 0:
+                p1Svg.style.display = "inline";
+                p2Svg.style.display = "none";
+                break;
+            case 1:
+                p1Svg.style.display = "none";
+                p2Svg.style.display = "inline";
+                break;
+        }
     }
 
     function submitMove(index) {
         if(gameOver) {
-            renderGame();
+            // renderGameConsole();
             getGameResult();
             return;
         }
         if(!gameBoard.updateBoard(index, getCurrentPlayer().getPiece())) {
-            console.log("invalid move - try again");
-            renderGame();
+            // console.log("invalid move - try again");
+            // renderGameConsole();
             getGameResult();
         } else {
             currentPlayerIndex++;
-            renderGame();
+            // renderGameConsole();
             checkWinner(); //bm
             getGameResult();
         }
@@ -203,17 +279,28 @@ const game = (function() {
     function getGameResult() {
         if (gameOver) {
             if(winner) {
-                renderWin(winType);
-                console.log(`${winner.getName()} is the winner! Start a new game to play again.`);
+                updateScore();
+                renderWin();
+                cleanCells();
+                // console.log(`${winner.getName()} is the winner! Start a new game to play again.`);
             } else {
-                console.log(`Game is a draw, start a new game to play again!`);
+                // console.log(`Game is a draw, start a new game to play again!`);
             }
         } else {
-            console.log(`game in progress, ${getCurrentPlayer().getName()} submit move to continue`);
+            // console.log(`game in progress, ${getCurrentPlayer().getName()} submit move to continue`);
         }
     }
 
-    function renderGameBoardInitial() {
+    function updateScore() {
+        players[winnerIdx].increaseScore();
+    }
+
+    function renderWin() {
+        renderWinBoard(winType);
+        renderScore();
+    }
+
+    function renderGameBoard() {
         const gameBoardDOM = document.querySelector(".game-board");
         gameBoardDOM.innerHTML = "";
         for (let i=0; i<9; i++) {
@@ -230,7 +317,15 @@ const game = (function() {
         }
     }
 
-    function renderWin(winType) {
+    function renderScore() {
+        const player1 = document.getElementById("player1");
+        const player2 = document.getElementById("player2");
+
+        player1.querySelector(".player-win-content").textContent = players[0].getScore();
+        player2.querySelector(".player-win-content").textContent = players[1].getScore();
+    }
+
+    function renderWinBoard(winType) {
         const h1 = [0,1,2];
         const h2 = [3,4,5];
         const h3 = [6,7,8];
@@ -247,6 +342,14 @@ const game = (function() {
         }
     }
 
+    function cleanCells() {
+        for(let i = 0; i<9; i++) {
+            const cell = document.getElementById(`${i}`)
+            cell.removeEventListener("click", triggerCell);
+            cell.classList.remove("empty");
+        }
+    }
+
     //this is the on click function for the cells
     function triggerCell(evt) {
         //update the cell and add cell content according to the board state
@@ -259,11 +362,26 @@ const game = (function() {
         cellContent.classList.add("cell-content", piece);
         cellContent.textContent = piece;
         cell.appendChild(cellContent);
+        renderPlayerIndicator();
+        renderGameStatus();
+    }
 
+    function resetGame() {
+        resetScores();
+        newGame();
+    }
+
+    function setButtons() {
+        const btnNewGame = document.querySelector(".new-game");
+        const btnResetGame = document.querySelector(".reset")
+
+        btnNewGame.addEventListener("click", newGame);
+        btnResetGame.addEventListener("click", resetGame);
     }
 
     function init() {
         newGame();
+        setButtons();
     }
 
     init();
@@ -271,13 +389,11 @@ const game = (function() {
     //don't need to expose any external methods currently
     // return {
     //     newGame,
-    //     renderGame,
+    //     renderGameConsole,
     //     submitMove,
     //     getCurrentPlayer,
     //     getGameResult,
     //     checkWinner,
     // };
 
-
-    return {renderWin,};
 })();
