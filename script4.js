@@ -42,7 +42,6 @@ const ttt = (function() {
     // updateBoard(index, String) => Boolean
     // resetBoard()
 
-    //TODO
     const game = (function() {
 
         let players;
@@ -97,7 +96,7 @@ const ttt = (function() {
             } else {
                 moveCount++;
                 currentPlayerTracker++;
-                updateGameState(); //TODO
+                updateGameState();
                 generateStatusMessage();
             }
         }
@@ -139,7 +138,7 @@ const ttt = (function() {
             }
 
             function checkForWinner() {
-                
+
                 function getWinnerPiece(board) {
                     let potentialWinner = null;
                     for(let i=0; i<board.length(); i++) {
@@ -203,9 +202,10 @@ const ttt = (function() {
             return players[index];
         }
 
-        //TODO
         function getPlayerIndexWithPiece(piece) {
-
+            for(let i=0; i<players.length; i++) {
+                if (players[i].getPiece() === piece) return i;
+            }
         }
 
         function randomizeStartingPlayer() {
@@ -224,6 +224,7 @@ const ttt = (function() {
             winnerIndex = null;
             winType = null;
             gameStatusMessage = "";
+            gameBoard.resetBoard();
         }
 
         function resetScores() {
@@ -244,6 +245,7 @@ const ttt = (function() {
             isGameOver,
             getWinner,
             getWinType,
+            getWinTypeArray,
             getCurrentPlayer,
             getCurrentPlayerIndex,
             getPlayerAt,
@@ -257,12 +259,15 @@ const ttt = (function() {
     // isGameOver() => Boolean
     // getWinner() => Player{name, piece, score} || null
     // getWinType() => Integer || null
+    // getWinTypeArray(winType) => Array
     // getCurrentPlayer() => Player{name, piece, score}
+    // getCurrentPlayerIndex() => Integer
     // getPlayerAt(index) => Player{name, piece, score}
+    // getGameStatusMessage() => String
     // newGame()
     // resetScore()
 
-    const render = (function () {
+    const render = (function() {
         
         function initialUI() {
             playerIndicator();
@@ -270,28 +275,105 @@ const ttt = (function() {
             playerInfo();
         }
 
-        //TODO
         function playerIndicator() {
-
+            const p1Indicator = document.getElementById("player1-indicator");
+            const p2Indicator = document.getElementById("player2-indicator");
+            p1Svg = p1Indicator.querySelector("svg");
+            p2Svg = p2Indicator.querySelector("svg");
+            if(isGameOver()) {
+                p1Svg.style.display = "none";
+                p2Svg.style.display = "none";
+                return;
+            }
+            switch(getCurrentPlayerIndex()) {
+                case 0:
+                    p1Svg.style.display = "inline";
+                    p2Svg.style.display = "none";
+                    break;
+                case 1:
+                    p1Svg.style.display = "none";
+                    p2Svg.style.display = "inline";
+                    break;
+            }
         }
 
-        //TODO
         function gameStatus() {
-
+            const gameStatus = document.querySelector(".game-status-message");
+            gameStatus.textContent = game.getGameStatusMessage();
         }
 
-        //TODO
         function playerInfo() {
+            const p1Info = game.getPlayerAt(0);
+            const p2Info = game.getPlayerAt(1);
+            const p1 = document.getElementById("player1");
+            const p2 = document.getElementById("player2");
 
+            p1name = p1.querySelector(".player-name");
+            p2name = p2.querySelector(".player-name");
+            p1piece = p1.querySelector(".player-piece");
+            p2piece = p2.querySelector(".player-piece");
+    
+            p1name.textContent = p1Info.getName();
+            p2name.textContent = p2Info.getName();
+            p1piece.textContent = p1Info.getPiece();
+            p2piece.textContent = p2Info.getPiece();
         }
 
-        //TODO
+        function playerScore() {
+            const p1Info = game.getPlayerAt(0);
+            const p2Info = game.getPlayerAt(1);
+            const p1 = document.getElementById("player1");
+            const p2 = document.getElementById("player2");
+            const p1Score = p1.querySelector(".player-win-content");
+            const p2Score = p2.querySelector(".player-win-content");
+
+            p1Score.textContent = p1Info.getScore();
+            p2Score.textContent = p2Info.getSCore();
+        }
+
         function gameBoard() {
-
+            const emptyCells = document.querySelectorAll(".cell.empty");
+            cells.forEach((emptyCell) => {
+                const cellId = emptyCell.id;
+                const cellContent = cell.querySelector(".cell-content");
+                const boardData = gameBoard.getBoardAt(cellId);
+                if(boardData) {
+                    cellContent.textContent = boardData;
+                    cellContent.classList.add(`${boardData}`);
+                    emptyCell.classList.remove("empty");
+                }
+            });
         }
 
-        //TODO
+        function newGameBoard() {
+            const gameBoardDOM = document.querySelector(".game-board");
+            gameBoardDOM.innerHTML = "";
+            for (let i=0; i<9; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell", "empty");
+                cell.id = `${i}`;
+                const cellContent = document.createElement("div");
+                cellContent.classList.add("cell-content");
+                cell.appendChild(cellContent);
+                gameBoardDOM.appendChild(cell);
+            }
+        }
+
         function win() {
+
+            const winType = game.getWinType();
+            const gameOver = game.isGameOver();
+
+            if(!gameOver || !winType) {
+                return;
+            }
+
+            const winTypeArray = game.getWinTypeArray(winType);
+
+            winTypeArray.forEach((index) => {
+                const cell = document.getElementById(`${index}`);
+                cell.classList.add("win");
+            });
 
         }
 
@@ -300,7 +382,9 @@ const ttt = (function() {
             playerIndicator,
             gameStatus,
             playerInfo,
+            playerScore,
             gameBoard,
+            newGameBoard,
             win,
         };
         
@@ -309,36 +393,58 @@ const ttt = (function() {
     // playerIndicator()
     // gameStatus()
     // playerInfo()
+    // playerScore()
     // gameBoard()
+    // newGameBoard();
     // win()
 
-    //TODO
-    function setInitialState() {
-    }
-
-    //TODO
     function addInitialListeners() {
         
-        //TODO
-        function cellListener() {
-
+        function addCellListeners() {
+            const cells = document.querySelectorAll(".cell");
+            cells.forEach((cell) => {
+                cell.addEventListener("click", cellListener);
+            });
         }
 
-        //TODO
+        function cellListener(event) {
+            const cell = event.target;
+            if(game.submitMove(cell.id)) {
+                cell.removeEventListener("click", cellListener);
+                render.gameBoard();
+                render.playerIndicator();
+                render.playerScore();
+            }
+            render.gameStatus();
+        }
+
         function newGameListener() {
-
+            game.newGame();
+            render.newGameBoard();
+            addCellListeners();
+            render.gameStatus();
+            render.playerIndicator();
         }
 
-        //TODO
         function resetScoreListener() {
-            
+            game.resetScores();
+            render.score();
+            newGameListener();
         }
+
+        addCellListeners();
+
+        const btnNewGame = document.querySelector(".new-game");
+        const btnResetGame = document.querySelector(".reset")
+
+        btnNewGame.addEventListener("click", newGameListener);
+        btnResetGame.addEventListener("click", resetScoreListener);
 
     }
 
     function initialize() {
-        setInitialState();
         addInitialListeners();
+        render.initialUI();
     }
 
     initialize();
