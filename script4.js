@@ -141,7 +141,7 @@ const ttt = (function() {
 
                 function getWinnerPiece(board) {
                     let potentialWinner = null;
-                    for(let i=0; i<board.length(); i++) {
+                    for(let i=0; i<board.length; i++) {
                         if(board[i] === null) return null;
                         if(board[i] !== potentialWinner && potentialWinner) {
                             return null;
@@ -209,7 +209,7 @@ const ttt = (function() {
         }
 
         function randomizeStartingPlayer() {
-            currentPlayerTracker = Math.round(Math.random);
+            currentPlayerTracker = Math.round(Math.random());
         }
 
         function getCurrentPlayerIndex() {
