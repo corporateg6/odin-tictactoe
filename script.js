@@ -1,136 +1,479 @@
-const gameBoard = (function() {
-    const board = [];
-    const moveHistory = [];
+const ttt = (function() {
 
-    function init() {
-        resetBoard();
-    }
+    const gameBoard = (function() {
+        let board = [];
 
-    function getBoard() {
-        return board;
-    }
-
-    function resetBoard() {
-        for (let i = 0; i<9; i++) { board[i] = null; } //fill board with null
-        return board;
-    }
-
-    function updateBoard(index, value) {
-        if(index < 9 && !board[index]) {
-            board[index] = value;
-            return true; //return true if success //TODO find a better way to handle this
-        } else {
-            return false; //return false if failed //should we return the failed move?
+        function init() {
+            resetBoard();
         }
-    }
 
-    init();
+        function resetBoard() {
+            for (let i = 0; i<9; i++) { board[i] = null; } //fill board with null
+        }
 
-    return {
-        getBoard,  //returns board state
-        resetBoard, //resets board to [null... 9x] and returns board
-        updateBoard, //(index, value) updates board @ index with value 
-    }
+        function getBoard() {
+            return board;
+        }
 
-})();
+        function getBoardAt(i) {
+            return board[i];
+        }
 
-const game = (function() {
-
-    function createPlayer (name, piece) {
-        const getName = () => name;
-        const getPiece = () => piece;
-        return { getName, getPiece };
-    }
-
-    const player1 = createPlayer("player1", "X");
-    const player2 = createPlayer("player2", "O");
-    const players = [player1, player2];
-    let gameOver = false;
-    let winner = null;
-    let currentPlayerIndex = 0;
-
-    function init() {
-        gameBoard.resetBoard();
-        winner = null;
-        gameOver = false;
-        currentPlayerIndex = 0;
-    }
-
-    function checkWinner() {
-        //create different arrays to check for win variations
-        const hBoard = gameBoard.getBoard();
-        const vBoard = [hBoard[0],hBoard[3],hBoard[6],hBoard[1],hBoard[4],hBoard[7],hBoard[2],hBoard[5],hBoard[8]];
-        const d1Board = [hBoard[0],hBoard[4],hBoard[8]];
-        const d2Board = [hBoard[2],hBoard[4], hBoard[6]];
-        let potentialWinner = null;
-
-
-        function checkWin(board) {
-            let pCount = 0;
-            let pWin = null;
-            for(let i = 0; i < board.length; i++) {
-                if(pWin === null) {
-                    pWin = board[i];
-                } else if (pWin === board[i]) {
-                    pCount++;
-                } else {
-                    pCount = 0;
-                    pWin = board[i];
-                }
-                if (pCount === 3) {
-                    winner = pWin;
-                    gameOver = true;
-                }
+        function updateBoard(index, value) {
+            if(index < 9 && !board[index]) {
+                board[index] = value;
+                return true; //return true if success //TODO find a better way to handle this?
+            } else {
+                return false; //return false if failed //should we return the failed move?
             }
         }
 
-        checkWin(hBoard);
-        if(!gameOver) {
-            checkWin(vBoard);
+        init();
+        
+        return {
+            getBoard,
+            getBoardAt,
+            updateBoard,
+            resetBoard,
+        };
+    })();
+    // getBoard() => []
+    // getBoardAt(index) => String
+    // updateBoard(index, String) => Boolean
+    // resetBoard()
+
+    const game = (function() {
+
+        let players;
+        let moveCount;
+        let gameOver;
+        let currentPlayerTracker;
+        let winnerIndex;
+        let winType;
+        let gameStatusMessage;
+
+        function generatePlayers() {
+
+            function createPlayer (name, piece) {
+                let score = 0;
+                const getName = () => name;
+                const getPiece = () => piece;
+                const getScore = () => score;
+                const increaseScore = () => ++score;
+                const resetScore = () => score = 0;
+                return { getName, getPiece, getScore, increaseScore, resetScore };
+            }
+
+            const player1 = createPlayer("Player 1", "X");
+            const player2 = createPlayer("Player 2", "O");
+
+            players = [player1, player2];
         }
-        if(!gameOver) {
-            checkWin(d1Board);
+
+        function getGameStatusMessage() {
+            return gameStatusMessage;
         }
-        if(!gameOver) {
-            checkWin(d2Board);
+
+        function generateStatusMessage() {
+            if (gameOver) {
+                if (winnerIndex != null) {
+                    gameStatusMessage = `${getPlayerAt(winnerIndex).getName()} wins!`;
+                } else {
+                    gameStatusMessage = `Draw Game`;
+                }
+            } else {
+                gameStatusMessage = `${getCurrentPlayer().getName()} to move`;
+            }
         }
-    }
 
-    function getCurrentPlayer() {
-        return players[currentPlayerIndex % players.length];
-    }
+        function submitMove(index) {
+            if(gameOver) {
+                return false;
+            }
 
-    function submitMove(index) {
-        return gameUpdate = gameBoard.updateBoard(index, getCurrentPlayer().getPiece());
-        // if(gameUpdate) {
-        //     currentPlayerIndex++;
-        // }
-        // return gameUpdate;
-    }
-
-    //TODO: return true if game is over, false if not
-    function isGameOver() {
-        return gameOver;
-    }
-
-    function nextMove(index) {
-        if(gameOver) {
-            console.log("Game is already over, reset game to start again.")
-            return;
+            if(!gameBoard.updateBoard(index, getCurrentPlayer().getPiece())) {
+                gameStatusMessage = "ERROR - failed to update board";
+                return false;
+            } else {
+                moveCount++;
+                currentPlayerTracker++;
+                updateGameState();
+                generateStatusMessage();
+                return true;
+            }
         }
-        if(!submitMove(index)) {
-            console.log("Illegal move, try another move!");
-            return;
+
+        function getWinTypeArray(winType) {
+            let winTypes = [];
+
+            function generateWinTypes() {
+                const h1 = [0,1,2];
+                const h2 = [3,4,5];
+                const h3 = [6,7,8];
+                const v1 = [0,3,6];
+                const v2 = [1,4,7];
+                const v3 = [2,5,8];
+                const d1 = [0,4,8];
+                const d2 = [2,4,6];
+                winTypes = [h1,h2,h3,v1,v2,v3,d1,d2];
+            }
+
+            generateWinTypes();
+
+            return winTypes[winType];
         }
-        checkWinner(); //this is too convoluted, I will start again from fresh.
+
+        function updateGameState() {
+
+            let boards = [];
+
+            function generateBoards() {
+                const hBoard = gameBoard.getBoard();
+                const h1Board = [hBoard[0],hBoard[1],hBoard[2]];
+                const h2Board = [hBoard[3],hBoard[4],hBoard[5]];
+                const h3Board = [hBoard[6],hBoard[7],hBoard[8]];
+                const vBoard = [hBoard[0],hBoard[3],hBoard[6],hBoard[1],hBoard[4],hBoard[7],hBoard[2],hBoard[5],hBoard[8]];
+                const v1Board = [vBoard[0],vBoard[1],vBoard[2]];
+                const v2Board = [vBoard[3],vBoard[4],vBoard[5]];
+                const v3Board = [vBoard[6],vBoard[7],vBoard[8]]; 
+                const d1Board = [hBoard[0],hBoard[4],hBoard[8]];
+                const d2Board = [hBoard[2],hBoard[4], hBoard[6]];
+                boards = [h1Board, h2Board, h3Board, v1Board, v2Board, v3Board, d1Board, d2Board];
+            }
+
+            function checkForWinner() {
+                //BOOKMARK -debug
+                function getWinnerPiece(board) {
+                    let potentialWinner = null;
+                    for(let i=0; i<board.length; i++) {
+                        if(board[i] === null) return null;
+                        if(board[i] !== potentialWinner && potentialWinner) {
+                            return null;
+                        } else {
+                            potentialWinner = board[i];
+                        }
+                    }
+                    return potentialWinner;
+                }
+
+                //check all the possible boards for wins
+                for(let i=0; i<boards.length; i++) {
+                    if(!gameOver) {
+                        const result = getWinnerPiece(boards[i]);
+                        if(result) {
+                            gameOver = true;
+                            winnerIndex = getPlayerIndexWithPiece(`${result}`);
+                            getPlayerAt(winnerIndex).increaseScore();
+                            winType = i;
+                        }
+                    }
+                }
+            }
+
+            function checkForDraw() {
+                //after checking for a win, check for a draw if 9 moves have been made
+                if(!gameOver && moveCount >= 9) {
+                    gameOver = true;
+                }
+            }
+
+            generateBoards();
+            checkForWinner();
+            checkForDraw();
+  
+        }
+
+        function isGameOver() {
+            return gameOver;
+        }
+
+        function getWinner() {
+            if(winnerIndex) {
+                return getPlayerAt(winnerIndex);
+            } else {
+                return null;
+            }
+        }
+
+        function getWinType() {
+            return winType;
+        }
+
+        function getCurrentPlayer() {
+            return players[getCurrentPlayerIndex()];
+        }
+
+        function getPlayerAt(index) {
+            return players[index];
+        }
+
+        function getPlayerIndexWithPiece(piece) {
+            for(let i=0; i<players.length; i++) {
+                if (players[i].getPiece() === piece) return i;
+            }
+        }
+
+        function randomizeStartingPlayer() {
+            currentPlayerTracker = Math.round(Math.random());
+        }
+
+        function getCurrentPlayerIndex() {
+            return currentPlayerTracker % 2;
+        }
+
+        function newGame() {
+            moveCount = 0;
+            gameOver = false;
+            currentPlayerTracker = 0;
+            randomizeStartingPlayer();
+            winnerIndex = null;
+            winType = null;
+            gameStatusMessage = "";
+            generateStatusMessage();
+            gameBoard.resetBoard();
+        }
+
+        function resetScores() {
+            players.forEach(player => {
+                player.resetScore();
+            });
+        }
+
+        function initialize() {
+            generatePlayers();
+            newGame();
+        }
+
+        initialize();
+
+        return {
+            submitMove,
+            isGameOver,
+            getWinner,
+            getWinType,
+            getWinTypeArray,
+            getCurrentPlayer,
+            getCurrentPlayerIndex,
+            getPlayerAt,
+            getGameStatusMessage,
+            newGame,
+            resetScores,
+            getPlayerIndexWithPiece, //remove
+        };
+
+    })();
+    // submitMove(index) => Boolean
+    // isGameOver() => Boolean
+    // getWinner() => Player{name, piece, score} || null
+    // getWinType() => Integer || null
+    // getWinTypeArray(winType) => Array
+    // getCurrentPlayer() => Player{name, piece, score}
+    // getCurrentPlayerIndex() => Integer
+    // getPlayerAt(index) => Player{name, piece, score}
+    // getGameStatusMessage() => String
+    // newGame()
+    // resetScore()
+
+    const render = (function() {
+        
+        function initialUI() {
+            playerIndicator();
+            gameStatus();
+            playerInfo();
+        }
+
+        function playerIndicator() {
+            const p1Indicator = document.getElementById("player1-indicator");
+            const p2Indicator = document.getElementById("player2-indicator");
+            p1Svg = p1Indicator.querySelector("svg");
+            p2Svg = p2Indicator.querySelector("svg");
+            if(game.isGameOver()) {
+                p1Svg.style.display = "none";
+                p2Svg.style.display = "none";
+                return;
+            }
+            switch(game.getCurrentPlayerIndex()) {
+                case 0:
+                    p1Svg.style.display = "inline";
+                    p2Svg.style.display = "none";
+                    break;
+                case 1:
+                    p1Svg.style.display = "none";
+                    p2Svg.style.display = "inline";
+                    break;
+            }
+        }
+
+        function gameStatus() {
+            const gameStatus = document.querySelector(".game-status-message");
+            gameStatus.textContent = game.getGameStatusMessage();
+        }
+
+        function playerInfo() {
+            const p1Info = game.getPlayerAt(0);
+            const p2Info = game.getPlayerAt(1);
+            const p1 = document.getElementById("player1");
+            const p2 = document.getElementById("player2");
+
+            p1name = p1.querySelector(".player-name");
+            p2name = p2.querySelector(".player-name");
+            p1piece = p1.querySelector(".player-piece");
+            p2piece = p2.querySelector(".player-piece");
+    
+            p1name.textContent = p1Info.getName();
+            p2name.textContent = p2Info.getName();
+            p1piece.textContent = p1Info.getPiece();
+            p2piece.textContent = p2Info.getPiece();
+        }
+
+        function playerScore() {
+            const p1Info = game.getPlayerAt(0);
+            const p2Info = game.getPlayerAt(1);
+            const p1 = document.getElementById("player1");
+            const p2 = document.getElementById("player2");
+            const p1Score = p1.querySelector(".player-win-content");
+            const p2Score = p2.querySelector(".player-win-content");
+
+            p1Score.textContent = p1Info.getScore();
+            p2Score.textContent = p2Info.getScore();
+        }
+
+        function gameBoardRender() {
+            const emptyCells = document.querySelectorAll(".cell.empty");
+            emptyCells.forEach((emptyCell) => {
+                const cellId = emptyCell.id;
+                const cellContent = emptyCell.querySelector(".cell-content");
+                const boardData = gameBoard.getBoardAt(cellId);
+                if(boardData) {
+                    cellContent.textContent = boardData;
+                    cellContent.classList.add(`${boardData}`);
+                    emptyCell.classList.remove("empty");
+                }
+            });
+        }
+
+        function newGameBoard() {
+            const gameBoardDOM = document.querySelector(".game-board");
+            gameBoardDOM.innerHTML = "";
+            for (let i=0; i<9; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell", "empty");
+                cell.id = `${i}`;
+                const cellContent = document.createElement("div");
+                cellContent.classList.add("cell-content");
+                cell.appendChild(cellContent);
+                gameBoardDOM.appendChild(cell);
+            }
+        }
+
+        function win() {
+
+            const winType = game.getWinType();
+            const gameOver = game.isGameOver();
+
+            if(!gameOver || winType == null) {
+                return;
+            }
+
+            const winTypeArray = game.getWinTypeArray(winType);
+
+            winTypeArray.forEach((index) => {
+                const cell = document.getElementById(`${index}`);
+                cell.classList.add("win");
+            });
+
+        }
+
+        function gameOverCellCleanup() {
+            const cells = document.querySelectorAll(".cell");
+            cells.forEach((cell) => {
+                cell.classList.remove("empty");
+            });
+        }
+
+        return {
+            initialUI,
+            playerIndicator,
+            gameStatus,
+            playerInfo,
+            playerScore,
+            gameBoardRender,
+            newGameBoard,
+            win,
+            gameOverCellCleanup,
+        };
+        
+    })();
+    // initialUI()
+    // playerIndicator()
+    // gameStatus()
+    // playerInfo()
+    // playerScore()
+    // gameBoard()
+    // newGameBoard();
+    // win()
+
+    function addInitialListeners() {
+        
+        function addCellListeners() {
+            const cells = document.querySelectorAll(".cell");
+            cells.forEach((cell) => {
+                cell.addEventListener("click", cellListener);
+            });
+        }
+
+        function cellListener(event) {
+            const cell = event.target;
+            if(game.submitMove(cell.id)) {
+                cell.removeEventListener("click", cellListener);
+                render.gameBoardRender();
+                render.playerIndicator();
+                render.playerScore();
+                if(game.isGameOver()) {
+                    render.win();
+                    render.gameOverCellCleanup();
+                    gameOverRemoveCellListeners();
+                }
+            }
+            render.gameStatus();
+        }
+
+        function newGameListener() {
+            game.newGame();
+            render.newGameBoard();
+            addCellListeners();
+            render.gameStatus();
+            render.playerIndicator();
+        }
+
+        function resetScoreListener() {
+            game.resetScores();
+            render.playerScore();
+            newGameListener();
+        }
+
+        function gameOverRemoveCellListeners() {
+            const cells = document.querySelectorAll(".cell");
+            cells.forEach((cell) => {
+                cell.removeEventListener("click", cellListener);
+            });
+        }
+
+        addCellListeners();
+
+        const btnNewGame = document.querySelector(".new-game");
+        const btnResetGame = document.querySelector(".reset")
+
+        btnNewGame.addEventListener("click", newGameListener);
+        btnResetGame.addEventListener("click", resetScoreListener);
+
     }
 
-    init();
-
-    return {
-        getCurrentPlayer,
-        nextMove,
-        isGameOver,
+    function initialize() {
+        addInitialListeners();
+        render.initialUI();
     }
+
+    initialize();
 
 })();
